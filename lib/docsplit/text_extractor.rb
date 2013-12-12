@@ -62,34 +62,33 @@ module Docsplit
 
     # Extract a page range worth of text from a PDF via OCR.
     def extract_from_ocr(pdf, pages)
-      tempdir = Dir.mktmpdir
-      base_path = File.join(@output, @pdf_name)
-      escaped_pdf = ESCAPE[pdf]
-      paths = []
-      if pages
-        pages.each do |page|
-          tiff = "#{tempdir}/#{@pdf_name}_#{page}.tif"
+      Dir.mktmpdir do |temp_dir|
+        base_path = File.join(@output, @pdf_name)
+        escaped_pdf = ESCAPE[pdf]
+        paths = []
+        if pages
+          pages.each do |page|
+            tiff = "#{tempdir}/#{@pdf_name}_#{page}.tif"
+            escaped_tiff = ESCAPE[tiff]
+            file = "#{base_path}_#{page}"
+            run "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert -despeckle +adjoin #{MEMORY_ARGS} #{OCR_FLAGS} #{escaped_pdf}[#{page - 1}] #{escaped_tiff} 2>&1"
+            run "tesseract #{escaped_tiff} #{ESCAPE[file]} -l #{@language} 2>&1"
+            file_name = file + '.txt'
+            paths << file_name
+            clean_text(file_name) if @clean_ocr
+            FileUtils.remove_entry_secure tiff
+          end
+        else
+          tiff = "#{tempdir}/#{@pdf_name}.tif"
           escaped_tiff = ESCAPE[tiff]
-          file = "#{base_path}_#{page}"
-          run "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert -despeckle +adjoin #{MEMORY_ARGS} #{OCR_FLAGS} #{escaped_pdf}[#{page - 1}] #{escaped_tiff} 2>&1"
-          run "tesseract #{escaped_tiff} #{ESCAPE[file]} -l #{@language} 2>&1"
-          file_name = file + '.txt'
+          run "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert -despeckle #{MEMORY_ARGS} #{OCR_FLAGS} #{escaped_pdf} #{escaped_tiff} 2>&1"
+          run "tesseract #{escaped_tiff} #{base_path} -l #{@language} 2>&1"
+          file_name = base_path + '.txt'
           paths << file_name
           clean_text(file_name) if @clean_ocr
-          FileUtils.remove_entry_secure tiff
         end
-      else
-        tiff = "#{tempdir}/#{@pdf_name}.tif"
-        escaped_tiff = ESCAPE[tiff]
-        run "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert -despeckle #{MEMORY_ARGS} #{OCR_FLAGS} #{escaped_pdf} #{escaped_tiff} 2>&1"
-        run "tesseract #{escaped_tiff} #{base_path} -l #{@language} 2>&1"
-        file_name = base_path + '.txt'
-        paths << file_name
-        clean_text(file_name) if @clean_ocr
+        return paths
       end
-      return paths
-    ensure
-      FileUtils.remove_entry_secure tempdir if File.exists?(tempdir)
     end
 
 

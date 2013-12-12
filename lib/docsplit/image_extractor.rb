@@ -21,7 +21,7 @@ module Docsplit
           previous = size if @rolling
         end
       end
-       return images.reject{|i| i.nil? or i.empty?}.flatten
+      return images.reject{|i| i.nil? or i.empty?}.flatten
     end
 
     # Convert a single PDF into page images at the specified size and format.
@@ -30,35 +30,34 @@ module Docsplit
     # Now we generate one page at a time, a counterintuitive opimization
     # suggested by the GraphicsMagick list, that seems to work quite well.
     def convert(pdf, size, format, previous=nil)
-      tempdir   = Dir.mktmpdir
-      basename  = File.basename(pdf, File.extname(pdf))
-      directory = directory_for(size)
-      pages     = @pages || '1-' + Docsplit.extract_length(pdf).to_s
-      escaped_pdf =  ESCAPE[pdf]
-      FileUtils.mkdir_p(directory) unless File.exists?(directory)
-      common    = "#{MEMORY_ARGS} -density #{@density} #{resize_arg(size)} #{quality_arg(format)}"
-      image_paths = []
-      if previous
-        FileUtils.cp(Dir[directory_for(previous) + '/*'], directory)
-        result = `MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm mogrify #{common} -unsharp 0x0.5+0.75 \"#{directory}/*.#{format}\" 2>&1`.chomp
-        if $? != 0
-        raise ExtractionFailed, result 
-        end
-      else
-        page_list(pages).each do |page|
-          out_file  = ESCAPE[File.join(directory, "#{basename}_#{page}.#{format}")]
-          cmd = "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert +adjoin -define pdf:use-cropbox=true #{common} #{escaped_pdf}[#{page - 1}] #{out_file} 2>&1".chomp
-          result = `#{cmd}`.chomp
+      Dir.mktmpdir do |temp_dir|
+        basename  = File.basename(pdf, File.extname(pdf))
+        directory = directory_for(size)
+        pages     = @pages || '1-' + Docsplit.extract_length(pdf).to_s
+        escaped_pdf =  ESCAPE[pdf]
+        FileUtils.mkdir_p(directory) unless File.exists?(directory)
+        common    = "#{MEMORY_ARGS} -density #{@density} #{resize_arg(size)} #{quality_arg(format)}"
+        image_paths = []
+        if previous
+          FileUtils.cp(Dir[directory_for(previous) + '/*'], directory)
+          result = `MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm mogrify #{common} -unsharp 0x0.5+0.75 \"#{directory}/*.#{format}\" 2>&1`.chomp
           if $? != 0
-          raise ExtractionFailed, result 
-          else
-            image_paths << out_file
+            raise ExtractionFailed, result 
           end
+        else
+          page_list(pages).each do |page|
+            out_file  = ESCAPE[File.join(directory, "#{basename}_#{page}.#{format}")]
+            cmd = "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert +adjoin -define pdf:use-cropbox=true #{common} #{escaped_pdf}[#{page - 1}] #{out_file} 2>&1".chomp
+            result = `#{cmd}`.chomp
+            if $? != 0
+              raise ExtractionFailed, result 
+            else
+              image_paths << out_file
+            end
+          end
+          return image_paths
         end
-        return image_paths
       end
-    ensure
-      FileUtils.remove_entry_secure tempdir if File.exists?(tempdir)
     end
 
 
