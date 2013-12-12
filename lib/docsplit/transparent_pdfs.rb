@@ -12,14 +12,13 @@ module Docsplit
         if ext.downcase == '.pdf'
           doc
         else
-            extract_pdf([doc], {:output => tmpdir})
-            File.join(tmpdir, File.basename(doc, ext) + '.pdf')
-          end
+          extract_pdf([doc], {:output => tmpdir})
+          File.join(tmpdir, File.basename(doc, ext) + '.pdf')
         end
       end
     end
-
   end
+
 
   extend TransparentPDFs
 
