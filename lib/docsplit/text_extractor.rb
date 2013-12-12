@@ -62,7 +62,7 @@ module Docsplit
 
     # Extract a page range worth of text from a PDF via OCR.
     def extract_from_ocr(pdf, pages)
-      Dir.mktmpdir do |temp_dir|
+      Dir.mktmpdir do |tempdir|
         base_path = File.join(@output, @pdf_name)
         escaped_pdf = ESCAPE[pdf]
         paths = []

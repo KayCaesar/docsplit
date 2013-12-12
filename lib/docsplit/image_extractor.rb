@@ -30,7 +30,7 @@ module Docsplit
     # Now we generate one page at a time, a counterintuitive opimization
     # suggested by the GraphicsMagick list, that seems to work quite well.
     def convert(pdf, size, format, previous=nil)
-      Dir.mktmpdir do |temp_dir|
+      Dir.mktmpdir do |tempdir|
         basename  = File.basename(pdf, File.extname(pdf))
         directory = directory_for(size)
         pages     = @pages || '1-' + Docsplit.extract_length(pdf).to_s
