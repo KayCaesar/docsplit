@@ -96,8 +96,11 @@ module Docsplit
   METADATA_KEYS.each do |key|
     instance_eval <<-EOS
       def self.extract_#{key}(pdfs, opts={})
-        pdfs = ensure_pdfs(pdfs)
-        InfoExtractor.new.extract(:#{key}, pdfs, opts)
+
+        temporary_workspace_wrapper do |workspace|
+          pdfs = ensure_pdfs(workspace, pdfs)
+          InfoExtractor.new.extract(:#{key}, pdfs, opts)
+        end
       end
     EOS
   end
