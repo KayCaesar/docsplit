@@ -39,7 +39,7 @@ module Docsplit
   # broke.
   class ExtractionFailed < StandardError; end
 
-  def self.temporary_workspace_wrapper(&blk)
+  def self.temporary_workspace_wrapper()
     Dir.mktmpdir do |tmpdir|
       yield tmpdir
 
