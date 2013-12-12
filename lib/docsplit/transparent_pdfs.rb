@@ -6,15 +6,15 @@ module Docsplit
 
     # Temporarily convert any non-PDF documents to PDFs before running them
     # through further extraction.
-    def ensure_pdfs(docs)
+    def ensure_pdfs(tmpdir, docs)
       [docs].flatten.map do |doc|
         ext = File.extname(doc)
         if ext.downcase == '.pdf'
           doc
         else
-          tempdir = File.join(Dir.tmpdir, 'docsplit')
-          extract_pdf([doc], {:output => tempdir})
-          File.join(tempdir, File.basename(doc, ext) + '.pdf')
+            extract_pdf([doc], {:output => tmpdir})
+            File.join(tmpdir, File.basename(doc, ext) + '.pdf')
+          end
         end
       end
     end

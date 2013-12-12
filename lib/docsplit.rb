@@ -39,23 +39,36 @@ module Docsplit
   # broke.
   class ExtractionFailed < StandardError; end
 
+  def self.temporary_workspace_wrapper(&blk)
+    Dir.mktmpdir do |tmpdir|
+      yield tmpdir
+
+    
+    end
+  end
   # Use the ExtractPages Java class to burst a PDF into single pages.
   def self.extract_pages(pdfs, opts={})
-    pdfs = ensure_pdfs(pdfs)
-    PageExtractor.new.extract(pdfs, opts)
+    temporary_workspace_wrapper do |workspace|
+      pdfs = ensure_pdfs(workspace, pdfs)
+      PageExtractor.new.extract(pdfs, opts)
+    end
   end
 
   # Use the ExtractText Java class to write out all embedded text.
   def self.extract_text(pdfs, opts={})
-    pdfs = ensure_pdfs(pdfs)
+    temporary_workspace_wrapper do |workspace|
+    pdfs = ensure_pdfs(workspace, pdfs)
     TextExtractor.new.extract(pdfs, opts)
+    end
   end
 
   # Use the ExtractImages Java class to rasterize a PDF into each page's image.
   def self.extract_images(pdfs, opts={})
-    pdfs = ensure_pdfs(pdfs)
-    opts[:pages] = normalize_value(opts[:pages]) if opts[:pages]
-    ImageExtractor.new.extract(pdfs, opts)
+    temporary_workspace_wrapper do |workspace|
+      pdfs = ensure_pdfs(workspace, pdfs)
+      opts[:pages] = normalize_value(opts[:pages]) if opts[:pages]
+      ImageExtractor.new.extract(pdfs, opts)
+    end
   end
 
   # Use JODCConverter to extract the documents as PDFs.
@@ -68,7 +81,7 @@ module Docsplit
       basename = File.basename(doc, ext)
       escaped_doc, escaped_out, escaped_basename = [doc, out, basename].map(&ESCAPE)
 
-      
+
       if GM_FORMATS.include?(`file -b --mime #{ESCAPE[doc]}`.strip.split(/[:;]\s+/)[0])
         `gm convert #{escaped_doc} #{escaped_out}/#{escaped_basename}.pdf`
       else
