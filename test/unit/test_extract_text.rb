@@ -1,4 +1,5 @@
-require 'test_helper'
+here = File.expand_path(File.dirname(__FILE__))
+require File.join(here, '..', 'test_helper')
 require 'tmpdir'
 
 class ExtractTextTest < Test::Unit::TestCase
