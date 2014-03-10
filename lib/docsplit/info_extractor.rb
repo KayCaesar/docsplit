@@ -17,14 +17,32 @@ module Docsplit
 
     # Pull out a single datum from a pdf.
     def extract(key, pdfs, opts)
+      extract_all(pdfs, opts)[key]
+    end
+    
+    def extract_all(pdfs, opts)
       pdf = [pdfs].flatten.first
       cmd = "pdfinfo #{ESCAPE[pdf]} 2>&1"
       result = `#{cmd}`.chomp
       raise ExtractionFailed, result if $? != 0
-      match = result.match(MATCHERS[key])
-      answer = match && match[1]
-      answer = answer.to_i if answer && key == :length
-      answer
+      # ruby  1.8 (iconv) and 1.9 (String#encode) :
+      if String.method_defined?(:encode)
+        result.encode!('UTF-8', 'binary', :invalid => :replace, :undef => :replace, :replace => "") unless result.valid_encoding?
+      else
+        require 'iconv' unless defined?(Iconv)
+        ic = Iconv.new('UTF-8//IGNORE','UTF-8')
+        result = ic.iconv(result)
+      end
+      info = {}
+      MATCHERS.each do |key, matcher|
+        match = result.match(matcher)
+        answer = match && match[1]
+        if answer
+          answer = answer.to_i if key == :length
+          info[key] = answer
+        end
+      end
+      info
     end
 
   end
